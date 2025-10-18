@@ -1,4 +1,3 @@
-// ...existing code...
 import { getProducts } from "../lib/api";
 
 export const revalidate = 60; // optional ISR in production
@@ -15,8 +14,9 @@ export default async function Home() {
     products = [];
   }
 
+  // Always use localhost for images
   const getImageUrl = (item) => {
-    const base = process.env.NEXT_PUBLIC_STRAPI_URL?.replace(/\/$/, "") || "";
+    const base = "http://localhost:1337"; // hardcoded localhost
     const urlFromAttributes =
       item?.attributes?.image?.data?.[0]?.attributes?.url ||
       item?.attributes?.image?.url;
@@ -56,26 +56,28 @@ export default async function Home() {
 
                 <div className="p-4 flex-1 flex flex-col">
                   <h2 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-                    {product.title}
+                    {product.title || "No title"}
                   </h2>
 
                   <p className="text-sm text-gray-600 mt-1 line-clamp-3 flex-1">
-                    {product.description}
+                    {product.description || "No description"}
                   </p>
 
                   <div className="mt-4 flex items-center gap-3">
                     <span className="text-lg font-bold text-gray-900">
-                      ₹{product.price}
+                      ₹{product.price || "N/A"}
                     </span>
 
-                    <a
-                      href={product.buyLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-auto inline-block bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition text-center"
-                    >
-                      Buy Now
-                    </a>
+                    {product.buyLink && (
+                      <a
+                        href={product.buyLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-auto inline-block bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition text-center"
+                      >
+                        Buy Now
+                      </a>
+                    )}
                   </div>
                 </div>
               </article>
@@ -86,4 +88,3 @@ export default async function Home() {
     </div>
   );
 }
-// ...existing code...
