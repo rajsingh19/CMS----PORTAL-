@@ -29,7 +29,7 @@ export default async function Home() {
             >
               {product.image.length > 0 && (
                 <img
-                  src={`http://localhost:1337${product.image[0].url}`}
+                 src={`${process.env.NEXT_PUBLIC_STRAPI_URL}${product.image[0].url}`}
                   alt={product.title}
                   className="w-full h-64 sm:h-56 md:h-48 lg:h-56 object-cover"
                 />
