@@ -1,62 +1,89 @@
+// ...existing code...
 import { getProducts } from "../lib/api";
+
+export const revalidate = 60; // optional ISR in production
 
 export default async function Home() {
   let products = [];
 
   try {
-    const res = await getProducts();
-    products = res.data || [];
+    const data = await getProducts(); // uses the helper in src/lib/api.js
+    // Support Strapi shapes: { data: [...] } or direct array
+    products = Array.isArray(data) ? data : data?.data ?? [];
   } catch (err) {
     console.error("Failed to fetch products:", err);
+    products = [];
   }
 
+  const getImageUrl = (item) => {
+    const base = process.env.NEXT_PUBLIC_STRAPI_URL?.replace(/\/$/, "") || "";
+    const urlFromAttributes =
+      item?.attributes?.image?.data?.[0]?.attributes?.url ||
+      item?.attributes?.image?.url;
+    const urlFromRoot = item?.image?.[0]?.url || item?.image?.url;
+    const raw = urlFromAttributes || urlFromRoot;
+    if (!raw) return "/placeholder.png";
+    return raw.startsWith("http") ? raw : `${base}${raw}`;
+  };
+
   return (
-    <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-center">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-6 text-center">
         Dummy Shopping Platform
       </h1>
 
       {products.length === 0 ? (
-        <p className="text-center text-gray-500 text-lg sm:text-xl">
-          No products found.
-        </p>
+        <p className="text-center text-gray-500">No products found.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="border rounded-lg shadow hover:shadow-xl transition-transform transform hover:scale-105 overflow-hidden flex flex-col"
-            >
-              {product.image.length > 0 && (
-                <img
-                 src={`${process.env.NEXT_PUBLIC_STRAPI_URL}${product.image[0].url}`}
-                  alt={product.title}
-                  className="w-full h-64 sm:h-56 md:h-48 lg:h-56 object-cover"
-                />
-              )}
-              <div className="p-4 flex flex-col flex-grow">
-                <h2 className="font-semibold text-lg sm:text-xl md:text-lg lg:text-xl mb-2">
-                  {product.title}
-                </h2>
-                <p className="text-gray-600 text-sm sm:text-base md:text-sm lg:text-base flex-grow">
-                  {product.description}
-                </p>
-                <p className="font-bold mt-2 text-base sm:text-lg md:text-base lg:text-lg">
-                  ₹{product.price}
-                </p>
-                <a
-                  href={product.buyLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-block text-center bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors duration-300"
-                >
-                  Buy Now
-                </a>
-              </div>
-            </div>
-          ))}
+          {products.map((p) => {
+            const product = p?.attributes ? { id: p.id, ...p.attributes } : p;
+            const imageUrl = getImageUrl(p);
+
+            return (
+              <article
+                key={p.id ?? product.id}
+                className="group flex flex-col bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-transform transform hover:-translate-y-1"
+              >
+                <div className="w-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                  <img
+                    src={imageUrl}
+                    alt={product.title ?? "Product image"}
+                    loading="lazy"
+                    className="w-full h-44 sm:h-56 md:h-48 lg:h-40 xl:h-44 object-cover transition-transform duration-300 transform group-hover:scale-105 max-h-[320px]"
+                  />
+                </div>
+
+                <div className="p-4 flex-1 flex flex-col">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+                    {product.title}
+                  </h2>
+
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-3 flex-1">
+                    {product.description}
+                  </p>
+
+                  <div className="mt-4 flex items-center gap-3">
+                    <span className="text-lg font-bold text-gray-900">
+                      ₹{product.price}
+                    </span>
+
+                    <a
+                      href={product.buyLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto inline-block bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition text-center"
+                    >
+                      Buy Now
+                    </a>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
+// ...existing code...
