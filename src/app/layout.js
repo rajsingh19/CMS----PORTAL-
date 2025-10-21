@@ -1,15 +1,20 @@
-// ...existing code...
+import './globals.css'
+import AuthProvider from '@/components/providers/AuthProvider'
+
 export const metadata = {
   title: "Shopping Platform",
-  description: "A simple shopping platform",
+  description: "A modern shopping platform with admin dashboard",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head />
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }
-// ...existing code...
