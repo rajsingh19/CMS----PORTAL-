@@ -24,72 +24,84 @@ interface ImageUploadProps {
   disabled?: boolean
 }
 
-export default function ImageUpload({ 
-  images, 
-  onImagesChange, 
-  maxImages = 10, 
-  disabled = false 
+export default function ImageUpload({
+  images,
+  onImagesChange,
+  maxImages = 10,
+  disabled = false,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (disabled) return
-    
-    const remainingSlots = maxImages - images.length
-    const filesToUpload = acceptedFiles.slice(0, remainingSlots)
-    
-    if (filesToUpload.length === 0) {
-      alert(`Maximum ${maxImages} images allowed`)
-      return
-    }
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (disabled) return
 
-    setUploading(true)
-    setUploadProgress(0)
+      const remainingSlots = maxImages - images.length
+      const filesToUpload = acceptedFiles.slice(0, remainingSlots)
 
-    try {
-      const uploadPromises = filesToUpload.map(async (file, index) => {
-        const formData = new FormData()
-        formData.append('file', file)
+      if (filesToUpload.length === 0) {
+        alert(`Maximum ${maxImages} images allowed`)
+        return
+      }
 
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
+      setUploading(true)
+      setUploadProgress(0)
+
+      try {
+        const uploadPromises = filesToUpload.map(async (file, index) => {
+          const formData = new FormData()
+          formData.append('file', file)
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          })
+
+          const text = await response.text().catch(() => '')
+          let result: any = null
+          try {
+            result = text ? JSON.parse(text) : null
+          } catch {
+            result = { error: text }
+          }
+
+          if (!response.ok) {
+            const msg = result?.error || result?.message || `Upload failed (${response.status})`
+            throw new Error(msg)
+          }
+
+          setUploadProgress(((index + 1) / filesToUpload.length) * 100)
+
+          // result.image is what server returns
+          return result.image ?? result
         })
 
-        if (!response.ok) {
-          throw new Error('Upload failed')
-        }
-
-        const result = await response.json()
-        setUploadProgress(((index + 1) / filesToUpload.length) * 100)
-        
-        return result.image
-      })
-
-      const uploadedImages = await Promise.all(uploadPromises)
-      onImagesChange([...images, ...uploadedImages])
-    } catch (error) {
-      console.error('Upload error:', error)
-      alert('Upload failed. Please try again.')
-    } finally {
-      setUploading(false)
-      setUploadProgress(0)
-    }
-  }, [images, onImagesChange, maxImages, disabled])
+        const uploadedImages = await Promise.all(uploadPromises)
+        onImagesChange([...images, ...uploadedImages])
+      } catch (error: any) {
+        console.error('Upload error:', error)
+        alert(error?.message || 'Upload failed. Please try again.')
+      } finally {
+        setUploading(false)
+        setUploadProgress(0)
+      }
+    },
+    [images, onImagesChange, maxImages, disabled]
+  )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.gif']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.gif'],
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
-    disabled: disabled || uploading || images.length >= maxImages
+    maxSize: 10 * 1024 * 1024,
+    disabled: disabled || uploading || images.length >= maxImages,
   })
 
   const removeImage = async (publicId: string) => {
     if (disabled) return
-    
+
     try {
       const response = await fetch('/api/upload', {
         method: 'DELETE',
@@ -99,10 +111,19 @@ export default function ImageUpload({
         body: JSON.stringify({ public_id: publicId }),
       })
 
+      const text = await response.text().catch(() => '')
+      let result: any = null
+      try {
+        result = text ? JSON.parse(text) : null
+      } catch {
+        result = { error: text }
+      }
+
       if (response.ok) {
-        onImagesChange(images.filter(img => img.public_id !== publicId))
+        onImagesChange(images.filter((img) => img.public_id !== publicId))
       } else {
-        alert('Failed to delete image')
+        const msg = result?.error || result?.message || `Delete failed (${response.status})`
+        alert(msg)
       }
     } catch (error) {
       console.error('Delete error:', error)
@@ -112,9 +133,8 @@ export default function ImageUpload({
 
   return (
     <div className="space-y-4">
-      {/* Upload Area */}
-      <Card 
-        {...getRootProps()} 
+      <Card
+        {...getRootProps()}
         className={`cursor-pointer transition-colors ${
           isDragActive ? 'border-blue-500 bg-blue-50' : 'border-dashed'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -135,13 +155,9 @@ export default function ImageUpload({
                   <p className="text-sm font-medium text-gray-900">
                     {isDragActive ? 'Drop images here' : 'Drag & drop images here'}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    or click to select files
-                  </p>
+                  <p className="text-xs text-gray-500">or click to select files</p>
                 </div>
-                <p className="text-xs text-gray-400">
-                  PNG, JPG, WEBP, GIF up to 10MB
-                </p>
+                <p className="text-xs text-gray-400">PNG, JPG, WEBP, GIF up to 10MB</p>
                 <p className="text-xs text-gray-400">
                   {images.length}/{maxImages} images
                 </p>
@@ -151,7 +167,6 @@ export default function ImageUpload({
         </CardContent>
       </Card>
 
-      {/* Image Preview Grid */}
       {images.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {images.map((image, index) => (
@@ -174,7 +189,7 @@ export default function ImageUpload({
                 )}
               </div>
               <div className="mt-1 text-xs text-gray-500 truncate">
-                {image.format.toUpperCase()} • {(image.bytes / 1024).toFixed(0)}KB
+                {image.format?.toUpperCase() || 'IMG'} • {(image.bytes / 1024).toFixed(0)}KB
               </div>
             </div>
           ))}
