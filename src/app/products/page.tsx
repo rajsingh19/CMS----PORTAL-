@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,7 +63,10 @@ export default function ProductsPage() {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">All Products</h1>
+          <div className="mb-4">
+            <h1 className="text-3xl font-bold text-gray-900">All Products</h1>
+            <p className="text-gray-600 mt-2">Discover amazing products across different categories</p>
+          </div>
           
           {/* Search and Filters */}
           <Card className="mb-6">
@@ -175,6 +180,7 @@ export default function ProductsPage() {
           </>
         )}
       </main>
+
     </div>
   )
 }

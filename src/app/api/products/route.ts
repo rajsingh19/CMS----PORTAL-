@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 const productSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
   price: z.number().int().min(0, 'Price must be a positive integer'),
+  originalPrice: z.number().int().min(0).optional(),
   buyLink: z.string().url().optional().or(z.literal('')),
   category: z.enum(['MENS', 'WOMENS', 'KIDS']),
+  brand: z.string().optional(),
+  stock: z.number().int().min(0).default(0),
+  sku: z.string().optional(),
+  weight: z.string().optional(),
+  dimensions: z.string().optional(),
+  color: z.string().optional(),
+  size: z.string().optional(),
+  material: z.string().optional(),
   published: z.boolean().default(false),
+  featured: z.boolean().default(false),
   images: z.array(z.object({
     url: z.string().url(),
     public_id: z.string(),
@@ -91,21 +103,37 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const validatedData = productSchema.parse(body)
-
-    // Get user from session (you'll need to implement this)
-    const userId = 'temp-user-id' // Replace with actual user ID from session
 
     const product = await prisma.product.create({
       data: {
         title: validatedData.title,
         description: validatedData.description,
         price: validatedData.price,
+        originalPrice: validatedData.originalPrice,
         buyLink: validatedData.buyLink,
         category: validatedData.category,
+        brand: validatedData.brand,
+        stock: validatedData.stock,
+        sku: validatedData.sku,
+        weight: validatedData.weight,
+        dimensions: validatedData.dimensions,
+        color: validatedData.color,
+        size: validatedData.size,
+        material: validatedData.material,
         published: validatedData.published,
-        userId,
+        featured: validatedData.featured,
+        userId: session.user.id,
         images: validatedData.images ? {
           create: validatedData.images.map(img => ({
             url: img.url,

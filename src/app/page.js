@@ -1,4 +1,4 @@
-import { getProducts } from "../lib/api";
+import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import ProductCard from '@/components/ProductCard'
 
@@ -8,8 +8,23 @@ export default async function Home() {
   let products = [];
 
   try {
-    const data = await getProducts({ published: 'true', limit: '12' });
-    products = data.products || [];
+    products = await prisma.product.findMany({
+      where: {
+        published: true
+      },
+      include: {
+        images: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 12
+    });
   } catch (err) {
     console.error("Failed to fetch products:", err);
     products = [];
